@@ -1,0 +1,96 @@
+# .github/workflows/build.yml
+#
+# 云端编译 Debug APK。
+# 注意：本仓库的安卓工程在子目录 DailyTodo/ 下，不在仓库根目录，
+#      所以所有 gradle 命令都在 working-directory: DailyTodo 里执行，
+#      产物路径也要带 DailyTodo/ 前缀。
+#
+# 版本对应关系（不能随便改）：
+#   JDK 17     <- AGP 8.5 强制要求
+#   Gradle 8.7 <- AGP 8.5.2 要求的最低版本，低了会报 "Minimum supported Gradle version is 8.7"
+#   AGP 8.5.2 / Kotlin 2.0.21 / KSP 2.0.21-1.0.25
+#
+# 【关键】工程里没有 gradlew / gradle-wrapper.jar，全程不使用 ./gradlew
+#        （Linux Runner 上它会因 CRLF 换行报 bad interpreter）。
+
+name: Build Debug APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        # 所有 run 步骤都在子目录里执行，等价于 gradle -p DailyTodo
+        working-directory: DailyTodo
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 JDK 17（Temurin）
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # 显式安装 Gradle 8.7，不依赖 wrapper。
+      # validate-wrapper 关掉：没有 wrapper jar，开着会校验失败。
+      - name: 配置 Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+          validate-wrapper: false
+
+      # 兜底：万一 setup-gradle 没把 gradle 放进 PATH，直接下载安装
+      - name: 校验 / 兜底安装 Gradle
+        run: |
+          if ! command -v gradle >/dev/null 2>&1; then
+            echo "setup-gradle 未提供 gradle 命令，改为直接下载 Gradle 8.7"
+            curl -sSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
+            unzip -q /tmp/gradle.zip -d "$RUNNER_TEMP"
+            echo "$RUNNER_TEMP/gradle-8.7/bin" >> "$GITHUB_PATH"
+            export PATH="$RUNNER_TEMP/gradle-8.7/bin:$PATH"
+          fi
+          gradle --version
+
+      - name: 编译 Debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: 输出 APK 体积
+        run: |
+          echo "=== Debug APK 实测体积 ==="
+          ls -lh app/build/outputs/apk/debug/*.apk
+          find app/build/outputs/apk/debug -name "*.apk" -exec stat -c "%n  %s 字节" {} \;
+
+      # 上传路径相对仓库根，所以要带 DailyTodo/ 前缀
+      - name: 上传 Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: DailyTodo/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      # 以下两步是附加项：顺手把缺失的 Wrapper 补出来，供下载回本地用。
+      # 不需要的话可以把这两步整段删掉，不影响出 APK。
+      - name: 生成 Gradle Wrapper
+        run: gradle wrapper --gradle-version 8.7 --distribution-type bin
+
+      - name: 上传 Gradle Wrapper
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-wrapper
+          path: |
+            DailyTodo/gradle/wrapper/gradle-wrapper.jar
+            DailyTodo/gradlew
+            DailyTodo/gradlew.bat
+          if-no-files-found: warn
+          retention-days: 30
