@@ -1,24 +1,19 @@
 // DailyTodo/settings.gradle.kts
 //
-// 国内网络可用的镜像配置（阿里云）：
-//   https://maven.aliyun.com/repository/google         -> 镜像 Google Maven（androidx / AGP）
-//   https://maven.aliyun.com/repository/public         -> 镜像 Maven Central
-//   https://maven.aliyun.com/repository/gradle-plugin  -> 镜像 Gradle 插件门户
-//
-// 说明两点：
-// 1. 镜像放在前面，官方源放后面兜底。镜像缺包时 Gradle 会自动往下找，不需要手动切换。
-// 2. pluginManagement 必须一起改 —— AGP / Kotlin / KSP 三个插件是在这里解析的，
-//    只改 dependencyResolutionManagement 的话，Sync 仍然会卡在插件下载。
-// 如果镜像挂了或返回很慢，把对应的 maven{} 整行删掉即可退回官方源。
+// 仓库顺序说明（踩过坑，别再改回去）：
+// pluginManagement 里官方源必须排最前。之前把阿里云镜像排在最前面，
+// 导致 com.google.devtools.ksp 插件标记解析失败（报 Plugin was not found）。
+// 现在顺序固定为：gradlePluginPortal() -> mavenCentral() -> google() -> 阿里云镜像（兜底，带 content 过滤）。
 
 pluginManagement {
     repositories {
-        // —— 阿里云镜像 ——
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        // —— 1. Gradle 插件门户：KSP / Kotlin 等插件的插件标记在这里 ——
+        gradlePluginPortal()
 
-        // —— 官方源（兜底）——
+        // —— 2. Maven Central：显式声明，不依赖镜像 ——
+        mavenCentral()
+
+        // —— 3. Google Maven：AGP / androidx 官方源 ——
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -26,17 +21,61 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-        mavenCentral()
-        gradlePluginPortal()
+
+        // —— 4. 阿里云镜像（兜底，本机国内网络用；CI 上基本用不到）——
+        //      每个镜像都加了 content 过滤，只让它响应自己该管的那些 group，
+        //      避免镜像返回异常结果时波及无关坐标。
+        //      若仍出现插件解析失败，直接把下面三个 maven{} 整段删掉。
+        maven {
+            url = uri("https://maven.aliyun.com/repository/google")
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        maven {
+            url = uri("https://maven.aliyun.com/repository/gradle-plugin")
+            content {
+                includeGroupByRegex("org\\.jetbrains.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+            content {
+                includeGroupByRegex("org\\.jetbrains.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
     }
 }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // —— 阿里云镜像 ——
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        // —— 阿里云镜像：Compose / Room / Navigation / Lifecycle / 协程 都落在这些 group 里 ——
+        maven {
+            url = uri("https://maven.aliyun.com/repository/google")
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+            content {
+                includeGroupByRegex("org\\.jetbrains.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
 
         // —— 官方源（兜底）——
         google()
