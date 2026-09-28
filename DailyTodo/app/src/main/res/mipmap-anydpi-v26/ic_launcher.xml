@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DailyTodo/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+     minSdk 26 起支持自适应图标，因此只需这一个矢量定义，不需要任何 png -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>

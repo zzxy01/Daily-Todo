@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DailyTodo/app/src/main/res/values-night/themes.xml -->
+<resources>
+    <!-- 深色模式下的窗口主题（页面内容由 Compose 的深色配色接管） -->
+    <style name="Theme.DailyTodo" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+</resources>

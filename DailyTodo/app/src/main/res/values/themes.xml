@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DailyTodo/app/src/main/res/values/themes.xml -->
+<resources>
+    <!-- 用系统框架主题（不用 AppCompat），去掉 ActionBar，状态栏深色图标 -->
+    <style name="Theme.DailyTodo" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+</resources>

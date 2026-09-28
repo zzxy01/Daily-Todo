@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DailyTodo/app/src/main/res/values/ic_launcher_background.xml
+     自适应图标背景：纯薄荷绿，不使用任何图片素材 -->
+<resources>
+    <color name="ic_launcher_background">#34C759</color>
+</resources>
